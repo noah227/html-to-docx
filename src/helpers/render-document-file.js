@@ -8,7 +8,6 @@ import isVText from 'virtual-dom/vnode/is-vtext';
 // eslint-disable-next-line import/no-named-default
 import { default as HTMLToVDOM } from 'html-to-vdom';
 import sizeOf from 'image-size';
-import imageToBase64 from 'image-to-base64';
 import mimeTypes from 'mime-types';
 
 // FIXME: remove the cyclic dependency
@@ -17,7 +16,7 @@ import * as xmlBuilder from './xml-builder';
 import namespaces from '../namespaces';
 import { imageType, internalRelationship } from '../constants';
 import { vNodeHasChildren } from '../utils/vnode';
-import { isValidUrl } from '../utils/url';
+import { fetchImage } from '../utils/url';
 
 const convertHTML = HTMLToVDOM({
   VNode,
@@ -30,12 +29,8 @@ export const buildImage = async (docxDocumentInstance, vNode, maximumWidth = nul
   let base64Uri = null;
   try {
     const imageSource = vNode.properties.src;
-    if (isValidUrl(imageSource)) {
-      const base64String = await imageToBase64(imageSource).catch((error) => {
-        // eslint-disable-next-line no-console
-        console.warning(`skipping image download and conversion due to ${error}`);
-      });
-
+    const [base64String, shouldDownload] = await fetchImage(imageSource);
+    if (shouldDownload) {
       if (base64String) {
         base64Uri = `data:${mimeTypes.lookup(imageSource)};base64, ${base64String}`;
       }
